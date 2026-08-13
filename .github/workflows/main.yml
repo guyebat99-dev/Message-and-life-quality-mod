@@ -1,0 +1,161 @@
+name: Build & Deploy
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Overwrite and generate clean plugin template
+        run: |
+          mkdir -p dist
+          
+          # 1. Generate clean manifest.json
+          cat << 'EOF' > dist/manifest.json
+          {
+            "name": "Advanced Message Tools",
+            "description": "Add sizing tools, formatting shortcuts, and quick timestamps directly to your chat bar.",
+            "version": "1.0.0",
+            "author": "guyebat99-dev",
+            "main": "index.js"
+          }
+          EOF
+
+          # 2. Generate error-free boilerplate index.js with formatting features
+          cat << 'EOF' > dist/index.js
+          (function (exports, jsxRuntime) {
+              Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+
+              function toggleLinePrefix(text, prefix) {
+                  var lines = text.split('\n');
+                  if (lines.every(function (l) { return l.startsWith(prefix); })) {
+                      return lines.map(function (l) { return l.slice(prefix.length); }).join('\n');
+                  }
+                  var cleanupRegex = /^(#{1,3} |-# )/;
+                  return lines.map(function (l) { return prefix + l.replace(cleanupRegex, ''); }).join('\n');
+              }
+
+              function wrapText(currentText, prefix, suffix) {
+                  if (!currentText.trim()) return prefix + "text" + (suffix || prefix);
+                  return prefix + currentText + (suffix || prefix);
+              }
+
+              function getDiscordTimestamp(offsetSeconds, typeFlag) {
+                  var unixTarget = Math.floor(Date.now() / 1000) + offsetSeconds;
+                  return '<t:' + unixTarget + ':' + typeFlag + '>';
+              }
+
+              function AdvancedToolbar({ channelId }) {
+                  var React = revenge.react.React;
+                  var RN = revenge.react.ReactNative;
+
+                  var draftFinder = revenge.modules.finders.findByProps('getDraft');
+                  var draftSaver = revenge.modules.finders.findByProps('saveDraft', 'clearDraft');
+
+                  function getDraft() { return draftFinder?.getDraft?.(channelId, 0) ?? ''; }
+                  function setDraft(val) { draftSaver?.saveDraft?.({ channelId: channelId, type: 0, draft: val }); }
+
+                  function applyHeader(level) {
+                      setDraft(toggleLinePrefix(getDraft(), level));
+                  }
+
+                  function applyWrap(prefix, suffix) {
+                      setDraft(wrapText(getDraft(), prefix, suffix));
+                  }
+
+                  function insertText(text) {
+                      var current = getDraft();
+                      setDraft(current ? current + ' ' + text : text);
+                  }
+
+                  return jsxRuntime.jsx(RN.ScrollView, {
+                      horizontal: true,
+                      showsHorizontalScrollIndicator: false,
+                      style: styles.container,
+                      contentContainerStyle: styles.contentContainer,
+                      children: [
+                          jsxRuntime.jsx(RN.TouchableOpacity, { style: styles.btn, onPress: function() { applyHeader('# '); }, children: jsxRuntime.jsx(RN.Text, { style: styles.btnTxt, children: "Large" }) }),
+                          jsxRuntime.jsx(RN.TouchableOpacity, { style: styles.btn, onPress: function() { applyHeader('## '); }, children: jsxRuntime.jsx(RN.Text, { style: styles.btnTxt, children: "Medium" }) }),
+                          jsxRuntime.jsx(RN.TouchableOpacity, { style: styles.btn, onPress: function() { applyHeader('### '); }, children: jsxRuntime.jsx(RN.Text, { style: styles.btnTxt, children: "Small" }) }),
+                          jsxRuntime.jsx(RN.TouchableOpacity, { style: styles.btn, onPress: function() { applyHeader('-# '); }, children: jsxRuntime.jsx(RN.Text, { style: styles.btnTxt, children: "Smaller" }) }),
+                          
+                          jsxRuntime.jsx(RN.View, { style: styles.divider }),
+
+                          jsxRuntime.jsx(RN.TouchableOpacity, { style: styles.btn, onPress: function() { applyWrap('**'); }, children: jsxRuntime.jsx(RN.Text, { style: styles.btnTxt, children: "Bold" }) }),
+                          jsxRuntime.jsx(RN.TouchableOpacity, { style: styles.btn, onPress: function() { applyWrap('*'); }, children: jsxRuntime.jsx(RN.Text, { style: styles.btnTxt, children: "Italic" }) }),
+                          jsxRuntime.jsx(RN.TouchableOpacity, { style: styles.btn, onPress: function() { applyWrap('||'); }, children: jsxRuntime.jsx(RN.Text, { style: styles.btnTxt, children: "Spoiler" }) }),
+                          jsxRuntime.jsx(RN.TouchableOpacity, { style: styles.btn, onPress: function() { applyWrap('`'); }, children: jsxRuntime.jsx(RN.Text, { style: styles.btnTxt, children: "Code" }) }),
+
+                          jsxRuntime.jsx(RN.View, { style: styles.divider }),
+
+                          jsxRuntime.jsx(RN.TouchableOpacity, { style: styles.tsBtn, onPress: function() { insertText(getDiscordTimestamp(0, 't')); }, children: jsxRuntime.jsx(RN.Text, { style: styles.btnTxt, children: "🕒 Time" }) }),
+                          jsxRuntime.jsx(RN.TouchableOpacity, { style: styles.tsBtn, onPress: function() { insertText(getDiscordTimestamp(0, 'R')); }, children: jsxRuntime.jsx(RN.Text, { style: styles.btnTxt, children: "⏳ Rel" }) })
+                      ]
+                  });
+              }
+
+              var styles = revenge.react.ReactNative.StyleSheet.create({
+                  container: { backgroundColor: '#2b2d31', borderTopWidth: 1, borderTopColor: '#1e1f22', maxHeight: 44 },
+                  contentContainer: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 6, gap: 6 },
+                  btn: { backgroundColor: '#404249', borderRadius: 6, paddingHorizontal: 10, paddingVertical: 6 },
+                  tsBtn: { backgroundColor: '#5865f240', borderRadius: 6, paddingHorizontal: 10, paddingVertical: 6, borderWidth: 1, borderColor: '#5865f270' },
+                  btnTxt: { color: '#fff', fontSize: 13, fontWeight: '600' },
+                  divider: { width: 1, height: 22, backgroundColor: '#4e5058', marginHorizontal: 4 }
+              });
+
+              var pluginDefinition = {
+                  start: function () {
+                      var ChatInputModule = revenge.modules.finders.findByProps('ChatInput') || revenge.modules.finders.findByName('ChatInput');
+                      var TargetComponent = ChatInputModule?.ChatInput || ChatInputModule;
+                      if (!TargetComponent) return;
+
+                      revenge.patcher.after('render', TargetComponent.prototype || TargetComponent, function (args, res) {
+                          var channelId = args?.[0]?.channelId || res?.props?.channelId || '';
+                          if (!channelId || !res) return res;
+
+                          return revenge.react.React.createElement(
+                              revenge.react.ReactNative.View, 
+                              { style: { flex: 1 } }, 
+                              revenge.react.React.createElement(AdvancedToolbar, { channelId: channelId }), 
+                              res
+                          );
+                      });
+                  },
+                  stop: function () { revenge.patcher.unpatchAll(); }
+              };
+
+              if (typeof plugin === 'function') { exports.default = plugin(pluginDefinition); } 
+              else { exports.default = pluginDefinition; }
+              return exports;
+          })({}, revenge.react.ReactJSXRuntime);
+          EOF
+
+      - name: Generate repository index
+        run: bunx revenge-plugin generate-index --dist dist --base-url https://github.io || bun run generate-index -- --dist dist --base-url https://github.io || true
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist/
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
