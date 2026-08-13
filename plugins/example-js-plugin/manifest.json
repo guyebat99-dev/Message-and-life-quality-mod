@@ -2,6 +2,6 @@
   "name": "Advanced Message Tools",
   "description": "Add sizing tools, formatting shortcuts, and quick timestamps directly to your chat bar.",
   "version": "1.0.0",
-  "author": "guyebat99-dev",
+  "author": "guyebatdev",
   "main": "index.js"
 }
