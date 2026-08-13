@@ -4,6 +4,11 @@ on:
   push:
     branches: [main]
 
+# FIX: Automatically cancels any older stuck builds when you push new code
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
 permissions:
   contents: read
   pages: write
