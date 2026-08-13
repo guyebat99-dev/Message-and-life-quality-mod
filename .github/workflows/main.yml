@@ -15,11 +15,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: oven-sh/setup-bun@v2
-
-      # We bypass package.json / registry lookups entirely by rendering the files locally
-      # This provides a 100% stable setup that won't throw 404 registry failures
-       Penned Clean Assets Configuration
       - name: Compile and Bundle Clean Plugin Structure
         run: |
           mkdir -p dist/plugins/message-tools
@@ -140,7 +135,7 @@ jobs:
           })({}, revenge.react.ReactJSXRuntime);
           EOF
 
-      # Generate index listing dynamically with clean JavaScript without remote CLI calls
+      # 3. Generate the required index file manually 
       - name: Generate Repository Index File Fallback
         run: |
           cat << 'EOF' > dist/index.json
