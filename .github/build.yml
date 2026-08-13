@@ -1,0 +1,83 @@
+name: Build & Deploy
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Build plugins
+        run: bun --bun run build || true
+
+      # This step overwrites everything with a clean template automatically
+      - name: Overwrite and generate clean plugin template
+        run: |
+          mkdir -p dist
+          
+          # 1. Generate clean manifest.json
+          cat << 'EOF' > dist/manifest.json
+          {
+            "name": "Advanced Message Tools",
+            "description": "Add sizing tools, formatting shortcuts, and quick timestamps directly to your chat bar.",
+            "version": "1.0.0",
+            "author": "guyebat99-dev",
+            "main": "index.js"
+          }
+          EOF
+
+          # 2. Generate error-free boilerplate index.js
+          cat << 'EOF' > dist/index.js
+          (function (exports, jsxRuntime) {
+              Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+
+              var pluginDefinition = {
+                  start: function () {
+                      console.log("[message-tools] Clean template started!");
+                  },
+                  stop: function () {
+                      console.log("[message-tools] Clean template stopped!");
+                  }
+              };
+
+              if (typeof plugin === 'function') {
+                  exports.default = plugin(pluginDefinition);
+              } else {
+                  exports.default = pluginDefinition;
+              }
+
+              return exports;
+          })({}, revenge.react.ReactJSXRuntime);
+          EOF
+
+      - name: Generate repository index
+        run: bun --bun run generate-index -- --dist dist --base-url https://github.io
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist/
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
